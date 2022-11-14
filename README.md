@@ -4,5 +4,7 @@ This is my own implementation of the paper Jiang, Xingyu, et al. "Robust image m
 python==3.6
 opencv==4.4.0
 numpy==1.19.2
-## The match result
+## The matching result
+the result of LGSC
 ![image](https://github.com/EmptyCity1995/LGSC/blob/main/final_result.jpg)
+the result of GTM

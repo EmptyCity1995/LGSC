@@ -8,3 +8,5 @@ numpy==1.19.2
 the result of LGSC
 ![image](https://github.com/EmptyCity1995/LGSC/blob/main/final_result.jpg)
 the result of GTM
+![the result of GTM](https://github.com/EmptyCity1995/LGSC/blob/main/final_result_GTM.jpg)
+

@@ -32,7 +32,7 @@ def find_KNN(K, distance_matrix, index):
 # generate a median KNN graph for the given point set
 def generate_median_KNN_graph(K, distance_matrix, match_number):
     # initialize the adjacency matrix Ap or Ap'
-    adj_martix = np.zeros((match_number, match_number))
+    adj_matrix = np.zeros((match_number, match_number))
     # calculate the median distance \eta
     dis_median = np.median(distance_matrix)
     for i in range(0, match_number):
@@ -42,15 +42,15 @@ def generate_median_KNN_graph(K, distance_matrix, match_number):
             # if j in the K nearest neighbors list and the distance between vi and vj is less than \eta
             if dis <= dis_median:
                 # connect vi and vj with non-direction edge
-                adj_martix[i][j] = 1
-                adj_martix[j][i] = 1
+                adj_matrix[i][j] = 1
+                adj_matrix[j][i] = 1
     # return the adjacency matrix Ap or Ap'
-    return adj_martix
+    return adj_matrix
 
 # find the outlier
-def find_outlier(ori_adj_martix, dst_adj_martix):
+def find_outlier(ori_adj_matrix, dst_adj_matrix):
     # calculate the residual adjacency matrix R
-    residual_adj_mat = abs(ori_adj_martix - dst_adj_martix)
+    residual_adj_mat = abs(ori_adj_matrix - dst_adj_matrix)
     # find the outlier column that yields the maximal number of different edges in both graphs
     outlier_j = np.argmax(np.sum(residual_adj_mat, axis=1))
     # return the residual adjacency matrix R and the index of outlier column
@@ -58,10 +58,10 @@ def find_outlier(ori_adj_martix, dst_adj_martix):
 
 # remove the outlier from the distance matrix and point set
 def remove_outlier(distance_matrix, cord_list, outlier_j):
-    update_dis_martix = np.delete(distance_matrix, outlier_j, axis=0)
-    update_dis_martix = np.delete(update_dis_martix, outlier_j, axis=1)
+    update_dis_matrix = np.delete(distance_matrix, outlier_j, axis=0)
+    update_dis_matrix = np.delete(update_dis_matrix, outlier_j, axis=1)
     update_cord_list = np.delete(cord_list, outlier_j, axis=0)
-    return update_dis_martix, update_cord_list
+    return update_dis_matrix, update_cord_list
 
 ori_image_name = 'frame0.jpg'  # the original image name
 ori_img = cv2.imread(ori_image_name)  # read the original image
@@ -69,7 +69,6 @@ ori_img = cv2.imread(ori_image_name)  # read the original image
 dst_image_name = 'frame1.jpg'  # the destination image name
 dst_img = cv2.imread(dst_image_name)  # read the destination image
 # dst_img = cv2.cvtColor(dst_img, cv2.COLOR_BGR2GRAY)  # convert to grayscale
-
 
 
 sift = cv2.SIFT_create()  # create a SIFT feature extractor
@@ -82,25 +81,43 @@ try:
 except:
     print(ori_des, dst_des)
 
+ori_pt_list = []  # create a list of original matching points
+dst_pt_list = []  # create a list of destination matching points
+filter_matches = [] # create a list of matches
+for m in bf_matches:
+    ori_pt_x = ori_kp[m.queryIdx].pt[0]  # get abscissas of original matching points
+    ori_pt_y = ori_kp[m.queryIdx].pt[1]  # get ordinates of original matching points
+
+    dst_pt_x = dst_kp[m.trainIdx].pt[0]  # get abscissas of destination matching points
+    dst_pt_y = dst_kp[m.trainIdx].pt[1]  # get ordinates of destination matching points
+
+    # filter out duplicate matching points
+    if ([ori_pt_x, ori_pt_y] not in ori_pt_list) and ([dst_pt_x, dst_pt_y] not in dst_pt_list):
+        ori_pt_list.append([ori_pt_x, ori_pt_y])
+        dst_pt_list.append([dst_pt_x, dst_pt_y])
+        filter_matches.append(m)
+
 # extract the coordinates of original match points
-ori_cord_list = np.float32([ori_kp[m.queryIdx].pt for m in bf_matches]).reshape(-1, 1, 2)
+# ori_cord_list = np.float32([ori_kp[m.queryIdx].pt for m in bf_matches]).reshape(-1, 1, 2)
+ori_cord_list = np.float32(ori_pt_list).reshape(-1, 1, 2)
 # extract the coordinates of destination match points
-dst_cord_list = np.float32([dst_kp[m.trainIdx].pt for m in bf_matches]).reshape(-1, 1, 2)
+# dst_cord_list = np.float32([dst_kp[m.trainIdx].pt for m in bf_matches]).reshape(-1, 1, 2)
+dst_cord_list = np.float32(dst_pt_list).reshape(-1, 1, 2)
+
 
 # calculate the distance matrix of original match points
 ori_dis_mat = distance_cal(ori_cord_list)
 # calculate the distance matrix of destination match points
 dst_dis_mat = distance_cal(dst_cord_list)
 
-
 match_number = len(ori_cord_list)  # the number of initial match points, N
-flitered_match = [i for i in range(match_number)]  # the index list of match points
 while True:
     K = 5  # the number of nearest neighbors
-    ori_adj_martix = generate_median_KNN_graph(K, ori_dis_mat, match_number)  # the adjacency matrix of ori_graph, Ap
-    dst_adj_martix = generate_median_KNN_graph(K, dst_dis_mat, match_number)  # the adjacency matrix of dst_graph, Ap'
+    ori_adj_matrix = generate_median_KNN_graph(K, ori_dis_mat, match_number)  # the adjacency matrix of ori_graph, Ap
+    dst_adj_matrix = generate_median_KNN_graph(K, dst_dis_mat, match_number)  # the adjacency matrix of dst_graph, Ap'
     # the residual adjacency matrix and the outlier index, R and j^out
-    residual_adj_mat, outlier_j = find_outlier(ori_adj_martix, dst_adj_martix)
+    residual_adj_mat, outlier_j = find_outlier(ori_adj_matrix, dst_adj_matrix)
+    print(np.sum(residual_adj_mat))
     # if the residual adjacency matrix is a zero matrix
     if np.all(residual_adj_mat == 0):
         # stop iteration
@@ -110,10 +127,10 @@ while True:
     # update the dst_dis_mat and dst_cord_list
     dst_dis_mat, dst_cord_list = remove_outlier(dst_dis_mat, dst_cord_list, outlier_j)
     match_number -= 1  # the number of match points is decreased by one
-    flitered_match.pop(outlier_j) # remove the outlier index from the index list
+    filter_matches.pop(outlier_j) # remove the outlier index from the index list
 
 # get the final matches
-final_match = [bf_matches[i] for i in flitered_match]
+final_match = filter_matches
 print(len(final_match), final_match)
 # calculate the Homography matrix
 M, mask = cv2.findHomography(ori_cord_list, dst_cord_list, cv2.RANSAC, 5.0)

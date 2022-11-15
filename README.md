@@ -12,5 +12,5 @@ numpy==1.19.2
 ![image](https://github.com/EmptyCity1995/LGSC/blob/main/final_result.jpg)
 [2] the result of GTM
 ![the result of GTM](https://github.com/EmptyCity1995/LGSC/blob/main/final_result_GTM.jpg)
-[2] the result of WGTM
+[3] the result of WGTM
 ![the result of WGTM](https://github.com/EmptyCity1995/LGSC/blob/main/final_result_WGTM.jpg)
